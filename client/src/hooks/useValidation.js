@@ -34,6 +34,16 @@ export const useValidation = () => {
     if (surveyData.closeDate && !isValidDateFormat(surveyData.closeDate)) {
       newErrors.closeDate = 'Close Date must be in DD/MM/YYYY HH:MM:SS format';
     }
+    
+    // Validate Close Date >= Launch Date
+    if (surveyData.launchDate && surveyData.closeDate && 
+        isValidDateFormat(surveyData.launchDate) && isValidDateFormat(surveyData.closeDate)) {
+      const launchDate = parseDateString(surveyData.launchDate);
+      const closeDate = parseDateString(surveyData.closeDate);
+      if (closeDate < launchDate) {
+        newErrors.closeDate = 'Close Date must be greater than or equal to Launch Date';
+      }
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -85,6 +95,14 @@ export const useValidation = () => {
   const isValidDateFormat = (dateString) => {
     const regex = /^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}:\d{2}$/;
     return regex.test(dateString);
+  };
+
+  const parseDateString = (dateString) => {
+    // Parse DD/MM/YYYY HH:MM:SS format
+    const [datePart, timePart] = dateString.split(' ');
+    const [day, month, year] = datePart.split('/').map(Number);
+    const [hours, minutes, seconds] = timePart.split(':').map(Number);
+    return new Date(year, month - 1, day, hours, minutes, seconds);
   };
 
   const validateTableQuestionFormat = (value) => {

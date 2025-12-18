@@ -491,7 +491,7 @@ const SurveyForm = () => {
           <button 
             type="submit" 
             className="btn btn-primary"
-            disabled={loading}
+            disabled={loading || !formData.surveyId || !formData.surveyName || !formData.surveyDescription}
           >
             {loading ? 'Saving...' : (isEdit ? 'Update Survey' : 'Create Survey')}
           </button>
