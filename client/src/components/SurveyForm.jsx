@@ -91,14 +91,6 @@ const SurveyForm = () => {
     }
   };
 
-  const handleMediumsChange = (e) => {
-    const options = Array.from(e.target.selectedOptions, option => option.value);
-    setFormData(prev => ({
-      ...prev,
-      availableMediums: options
-    }));
-  };
-
   const toggleMedium = (medium) => {
     const currentMediums = Array.isArray(formData.availableMediums) 
       ? formData.availableMediums 
@@ -183,9 +175,6 @@ const SurveyForm = () => {
       return null;
     }
   };
-
-  const [hierarchyInput, setHierarchyInput] = useState('');
-  const [hierarchyLevels, setHierarchyLevels] = useState([]);
 
   const handleAddHierarchyLevel = () => {
     if (hierarchyInput && /^\d+$/.test(hierarchyInput)) {
