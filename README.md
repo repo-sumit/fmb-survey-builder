@@ -9,7 +9,7 @@ A comprehensive web application for creating and managing surveys with automatic
 - **Translation Panel**: Intuitive tabbed interface for entering question content in multiple languages
 - **Question Builder**: Dynamic form-based question creation supporting 12 different question types
 - **Smart Field Configuration**: Auto-configured fields based on question type (isDynamic, media type, etc.)
-- **Option Management**: Built-in option builder with 15-option limit and child question mapping
+- **Option Management**: Built-in option builder with 20-option limit and child question mapping
 - **Parent-Child Questions**: Support for conditional questions based on parent responses
 - **Excel Export**: Generate Excel dump sheets with multi-language row duplication matching reference format
 - **Upload Validation**: Validate CSV/XLSX files against schema before importing data
@@ -158,8 +158,8 @@ The system supports creating questions in multiple languages with automatic Exce
    - Completion percentage badge shows translation progress
    - Enter question description and options for each language
 6. For option-based questions:
-   - Click "Add Option" button (shows current count e.g., "0/15")
-   - Maximum 15 options per question
+   - Click "Add Option" button (shows current count e.g., "0/20")
+   - Maximum 20 options per question
    - Enter option text for each language
    - For Single Select: can map child questions to each option
 7. Fill translations for all languages
@@ -385,9 +385,9 @@ The validation results include:
 Survey ID, Survey Name, Survey Description, available_mediums, Hierarchical Access Level, Public, In School, Accept multiple Entries, Launch Date, Close Date, Mode, visible_on_report_bot, Is Active?, Download_response, Geo Fencing, Geo Tagging, Test Survey
 
 ### Question Master Sheet (84 columns)
-Survey ID, Medium, Medium_in_english, Question_ID, Question Type, IsDynamic, Question_Description_Optional, Max_Value, Min_Value, Is Mandatory, Table_Header_value, Table_Question_value, Source_Question, Text_input_type, text_limit_characters, Mode, Question_Media_Link, Question_Media_Type, Question Description, Question Description (duplicate column), Option_1 through Option_15 (with _in_English and Children columns for each), Correct_Answer_Optional, Children Questions, Outcome Description
+Survey ID, Medium, Medium_in_english, Question_ID, Question Type, IsDynamic, Question_Description_Optional, Max_Value, Min_Value, Is Mandatory, Table_Header_value, Table_Question_value, Source_Question, Text_input_type, text_limit_characters, Mode, Question_Media_Link, Question_Media_Type, Question Description, Question Description (duplicate column), Option_1 through Option_20 (with _in_English and Children columns for each), Correct_Answer_Optional, Children Questions, Outcome Description
 
-**Note**: The export now uses **15 options maximum** (Option_1 through Option_15) instead of 20, with three columns per option:
+**Note**: The export now uses **20 options maximum** (Option_1 through Option_20) instead of 20, with three columns per option:
 - `Option_N`: Option text in the question's language
 - `Option_N_in_English`: English translation
 - `Option_NChildren`: Child question IDs triggered by this option (for Single Select only)
@@ -407,24 +407,24 @@ Each question type has specific field requirements and auto-configuration:
 
 | Question Type | isDynamic | Max Options | Show Options | Show Table Fields | Show Children | Media Type |
 |--------------|-----------|-------------|--------------|-------------------|---------------|------------|
-| Multiple Choice Single Select | Yes | 15 | ✓ | ✗ | ✓ | None (fixed) |
-| Multiple Choice Multi Select | Yes | 15 | ✓ | ✗ | ✗ | None (fixed) |
-| Tabular Drop Down | Yes | 15 | ✓ | ✓ | ✗ | - |
+| Multiple Choice Single Select | Yes | 20 | ✓ | ✗ | ✓ | None (fixed) |
+| Multiple Choice Multi Select | Yes | 20 | ✓ | ✗ | ✗ | None (fixed) |
+| Tabular Drop Down | Yes | 20 | ✓ | ✓ | ✗ | - |
 | Tabular Text Input | No | - | ✗ | ✓ | ✗ | - |
 | Tabular Check Box | No | - | ✗ | ✓ | ✗ | - |
 | Text Response | Yes | - | ✗ | ✗ | ✗ | - |
 | Image Upload | Yes | - | ✗ | ✗ | ✗ | - |
 | Video Upload | No | - | ✗ | ✗ | ✗ | - |
 | Voice Response | No | - | ✗ | ✗ | ✗ | - |
-| Likert Scale | No | 15 | ✓ | ✗ | ✗ | - |
+| Likert Scale | No | 20 | ✓ | ✗ | ✗ | - |
 | Calendar | Yes | - | ✗ | ✗ | ✗ | - |
-| Drop Down | Yes | 15 | ✓ | ✗ | ✗ | - |
+| Drop Down | Yes | 20 | ✓ | ✗ | ✗ | - |
 
 **Auto-Configuration Behaviors:**
 - **isDynamic**: Automatically set and disabled based on question type
 - **Question Media Type**: Set to "None" and disabled for Multiple Choice types
 - **Question Media Link**: Automatically disabled and cleared when Media Type is "None"
-- **Max Options**: Visual counter shows current/max (e.g., "Add Option (2/15)")
+- **Max Options**: Visual counter shows current/max (e.g., "Add Option (2/20)")
 
 ## Design Decisions & Assumptions
 
