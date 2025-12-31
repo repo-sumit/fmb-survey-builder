@@ -314,7 +314,9 @@ router.post('/:surveyId/questions/:questionId/duplicate', async (req, res) => {
       })
       .filter(n => n > 0);
     
-    const maxQuestionNum = questionNumbers.length > 0 ? Math.max(...questionNumbers) : 0;
+    const maxQuestionNum = questionNumbers.length > 0 
+      ? questionNumbers.reduce((max, num) => Math.max(max, num), 0) 
+      : 0;
     const newQuestionId = `Q${maxQuestionNum + 1}`;
     
     // Create duplicated question

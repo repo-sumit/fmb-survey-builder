@@ -1439,6 +1439,12 @@ body {
   border-color: #3498db;
 }
 
+.preview-checkbox {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
 /* Multiple Choice Renderers */
 .pill-buttons {
   display: flex;

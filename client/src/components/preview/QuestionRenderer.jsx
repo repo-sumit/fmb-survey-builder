@@ -8,6 +8,7 @@ import MultipleChoiceMultiRenderer from './MultipleChoiceMultiRenderer';
 import LikertScaleRenderer from './LikertScaleRenderer';
 import CalendarRenderer from './CalendarRenderer';
 import MediaUploadRenderer from './MediaUploadRenderer';
+import TabularCheckBoxRenderer from './TabularCheckBoxRenderer';
 
 const QuestionRenderer = ({ question, language }) => {
   const translations = question.translations?.[language] || {};
@@ -48,8 +49,7 @@ const QuestionRenderer = ({ question, language }) => {
         return <MediaUploadRenderer question={question} />;
       
       case 'Tabular Check Box':
-        // Similar to tabular text input but with checkboxes
-        return <TabularTextInputRenderer question={question} language={language} />;
+        return <TabularCheckBoxRenderer question={question} language={language} />;
       
       default:
         return <div className="unsupported-question-type">Question type not supported in preview: {type}</div>;

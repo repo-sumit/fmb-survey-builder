@@ -8,9 +8,10 @@ const path = require('path');
 const validator = require('../services/validator');
 
 const STORE_PATH = path.join(__dirname, '../data/store.json');
+const UPLOAD_DIR = path.join(__dirname, '../uploads');
 
 // Configure multer for file upload
-const upload = multer({ dest: 'uploads/' });
+const upload = multer({ dest: UPLOAD_DIR });
 
 // Read store
 async function readStore() {
