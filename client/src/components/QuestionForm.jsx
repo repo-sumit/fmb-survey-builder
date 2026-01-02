@@ -158,6 +158,23 @@ const QuestionForm = () => {
     }));
   };
 
+  const buildQuestionPayload = () => {
+    const primaryLanguage = surveyLanguages.includes('English')
+      ? 'English'
+      : (surveyLanguages[0] || 'English');
+    const primaryTranslation = formData.translations?.[primaryLanguage] || {};
+
+    // Map translations back to legacy fields for validation and backend compatibility.
+    return {
+      ...formData,
+      questionDescription: primaryTranslation.questionDescription || '',
+      options: primaryTranslation.options || [],
+      tableHeaderValue: primaryTranslation.tableHeaderValue || '',
+      tableQuestionValue: primaryTranslation.tableQuestionValue || '',
+      medium: primaryLanguage
+    };
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitError(null);
@@ -222,8 +239,10 @@ const QuestionForm = () => {
       return;
     }
 
+    const payload = buildQuestionPayload();
+
     // Run full validation
-    if (!validateQuestion(formData, formData.questionType)) {
+    if (!validateQuestion(payload, payload.questionType)) {
       setSubmitError('Please fix all validation errors before submitting');
       return;
     }
@@ -231,10 +250,10 @@ const QuestionForm = () => {
     try {
       setLoading(true);
       if (isEdit) {
-        await questionAPI.update(surveyId, questionId, formData);
+        await questionAPI.update(surveyId, questionId, payload);
         alert('✓ Question updated successfully');
       } else {
-        await questionAPI.create(surveyId, formData);
+        await questionAPI.create(surveyId, payload);
         alert('✓ Question added successfully! You can add more questions or preview the survey.');
       }
       navigate(`/surveys/${surveyId}/questions`);
