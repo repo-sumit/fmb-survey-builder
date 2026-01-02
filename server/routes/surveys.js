@@ -58,17 +58,45 @@ router.post('/', async (req, res) => {
   try {
     const surveyData = req.body;
     
+    // Validate required fields first
+    if (!surveyData.surveyId || surveyData.surveyId.trim() === '') {
+      return res.status(400).json({ 
+        error: 'Survey ID is required',
+        errors: ['Survey ID is required'] 
+      });
+    }
+    
+    if (!surveyData.surveyName || surveyData.surveyName.trim() === '') {
+      return res.status(400).json({ 
+        error: 'Survey Name is required',
+        errors: ['Survey Name is required'] 
+      });
+    }
+    
+    if (!surveyData.surveyDescription || surveyData.surveyDescription.trim() === '') {
+      return res.status(400).json({ 
+        error: 'Survey Description is required',
+        errors: ['Survey Description is required'] 
+      });
+    }
+    
     // Validate survey data
     const validation = validator.validateSurvey(surveyData);
     if (!validation.isValid) {
-      return res.status(400).json({ errors: validation.errors });
+      return res.status(400).json({ 
+        error: 'Validation failed',
+        errors: validation.errors 
+      });
     }
     
     const store = await readStore();
     
     // Check if survey ID already exists
     if (store.surveys.find(s => s.surveyId === surveyData.surveyId)) {
-      return res.status(400).json({ error: 'Survey ID already exists' });
+      return res.status(400).json({ 
+        error: 'Survey ID already exists',
+        errors: [`Survey ID "${surveyData.surveyId}" already exists. Please use a unique Survey ID.`] 
+      });
     }
     
     // Add survey
@@ -77,7 +105,12 @@ router.post('/', async (req, res) => {
     
     res.status(201).json(surveyData);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to create survey', message: error.message });
+    console.error('Survey creation error:', error);
+    res.status(500).json({ 
+      error: 'Failed to create survey', 
+      errors: [error.message || 'Internal server error'],
+      message: error.message 
+    });
   }
 });
 
@@ -89,14 +122,20 @@ router.put('/:id', async (req, res) => {
     // Validate survey data
     const validation = validator.validateSurvey(surveyData);
     if (!validation.isValid) {
-      return res.status(400).json({ errors: validation.errors });
+      return res.status(400).json({ 
+        error: 'Validation failed',
+        errors: validation.errors 
+      });
     }
     
     const store = await readStore();
     const index = store.surveys.findIndex(s => s.surveyId === req.params.id);
     
     if (index === -1) {
-      return res.status(404).json({ error: 'Survey not found' });
+      return res.status(404).json({ 
+        error: 'Survey not found',
+        errors: ['Survey not found'] 
+      });
     }
     
     store.surveys[index] = surveyData;
@@ -104,7 +143,12 @@ router.put('/:id', async (req, res) => {
     
     res.json(surveyData);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update survey', message: error.message });
+    console.error('Survey update error:', error);
+    res.status(500).json({ 
+      error: 'Failed to update survey', 
+      errors: [error.message || 'Internal server error'],
+      message: error.message 
+    });
   }
 });
 
@@ -153,18 +197,42 @@ router.post('/:id/questions', async (req, res) => {
     // Check if survey exists
     const survey = store.surveys.find(s => s.surveyId === req.params.id);
     if (!survey) {
-      return res.status(404).json({ error: 'Survey not found' });
+      return res.status(404).json({ 
+        error: 'Survey not found',
+        errors: [`Survey with ID "${req.params.id}" not found`] 
+      });
+    }
+    
+    // Validate required fields first
+    if (!questionData.questionId || questionData.questionId.trim() === '') {
+      return res.status(400).json({ 
+        error: 'Question ID is required',
+        errors: ['Question ID is required'] 
+      });
+    }
+    
+    if (!questionData.questionType || questionData.questionType === '') {
+      return res.status(400).json({ 
+        error: 'Question Type is required',
+        errors: ['Question Type is required'] 
+      });
     }
     
     // Validate question data
     const validation = validator.validateQuestion(questionData, store.questions);
     if (!validation.isValid) {
-      return res.status(400).json({ errors: validation.errors });
+      return res.status(400).json({ 
+        error: 'Validation failed',
+        errors: validation.errors 
+      });
     }
     
     // Check if question ID already exists for this survey
     if (store.questions.find(q => q.surveyId === req.params.id && q.questionId === questionData.questionId)) {
-      return res.status(400).json({ error: 'Question ID already exists for this survey' });
+      return res.status(400).json({ 
+        error: 'Question ID already exists',
+        errors: [`Question ID "${questionData.questionId}" already exists for this survey. Please use a unique Question ID.`] 
+      });
     }
     
     // Add question
@@ -173,7 +241,12 @@ router.post('/:id/questions', async (req, res) => {
     
     res.status(201).json(questionData);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to create question', message: error.message });
+    console.error('Question creation error:', error);
+    res.status(500).json({ 
+      error: 'Failed to create question', 
+      errors: [error.message || 'Internal server error'],
+      message: error.message 
+    });
   }
 });
 
@@ -186,7 +259,10 @@ router.put('/:id/questions/:questionId', async (req, res) => {
     const store = await readStore();
     const validation = validator.validateQuestion(questionData, store.questions);
     if (!validation.isValid) {
-      return res.status(400).json({ errors: validation.errors });
+      return res.status(400).json({ 
+        error: 'Validation failed',
+        errors: validation.errors 
+      });
     }
     
     const index = store.questions.findIndex(
@@ -194,7 +270,10 @@ router.put('/:id/questions/:questionId', async (req, res) => {
     );
     
     if (index === -1) {
-      return res.status(404).json({ error: 'Question not found' });
+      return res.status(404).json({ 
+        error: 'Question not found',
+        errors: ['Question not found'] 
+      });
     }
     
     store.questions[index] = questionData;
@@ -202,7 +281,12 @@ router.put('/:id/questions/:questionId', async (req, res) => {
     
     res.json(questionData);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update question', message: error.message });
+    console.error('Question update error:', error);
+    res.status(500).json({ 
+      error: 'Failed to update question', 
+      errors: [error.message || 'Internal server error'],
+      message: error.message 
+    });
   }
 });
 

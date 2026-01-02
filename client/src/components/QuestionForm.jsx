@@ -161,24 +161,47 @@ const QuestionForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitError(null);
+    setErrors({});
+
+    // Validate required basic fields
+    if (!formData.questionId || !formData.questionId.trim()) {
+      setSubmitError('Question ID is required');
+      setErrors({ questionId: 'Question ID is required' });
+      return;
+    }
+    if (!formData.questionType || formData.questionType === '') {
+      setSubmitError('Question Type is required');
+      setErrors({ questionType: 'Question Type is required' });
+      return;
+    }
 
     // Validate that all languages have required translations
     let hasAllTranslations = true;
     let missingLanguages = [];
+    let translationErrors = [];
     
     surveyLanguages.forEach(lang => {
       const translation = formData.translations[lang];
-      if (!translation || !translation.questionDescription) {
+      if (!translation || !translation.questionDescription || translation.questionDescription.trim() === '') {
         hasAllTranslations = false;
         missingLanguages.push(lang);
+        translationErrors.push(`${lang}: Question Description is required`);
       }
       
       if (fieldConfig.showTableFields) {
-        if (!translation?.tableHeaderValue || !translation?.tableQuestionValue) {
+        if (!translation?.tableHeaderValue || translation.tableHeaderValue.trim() === '') {
           hasAllTranslations = false;
           if (!missingLanguages.includes(lang)) {
             missingLanguages.push(lang);
           }
+          translationErrors.push(`${lang}: Table Header Value is required`);
+        }
+        if (!translation?.tableQuestionValue || translation.tableQuestionValue.trim() === '') {
+          hasAllTranslations = false;
+          if (!missingLanguages.includes(lang)) {
+            missingLanguages.push(lang);
+          }
+          translationErrors.push(`${lang}: Table Question Value is required`);
         }
       }
       
@@ -188,16 +211,20 @@ const QuestionForm = () => {
           if (!missingLanguages.includes(lang)) {
             missingLanguages.push(lang);
           }
+          translationErrors.push(`${lang}: At least 2 options are required`);
         }
       }
     });
     
     if (!hasAllTranslations) {
-      setSubmitError(`Missing required translations for: ${missingLanguages.join(', ')}`);
+      const errorMsg = `Missing required translations:\n${translationErrors.join('\n')}`;
+      setSubmitError(errorMsg);
       return;
     }
 
+    // Run full validation
     if (!validateQuestion(formData, formData.questionType)) {
+      setSubmitError('Please fix all validation errors before submitting');
       return;
     }
 
@@ -205,17 +232,39 @@ const QuestionForm = () => {
       setLoading(true);
       if (isEdit) {
         await questionAPI.update(surveyId, questionId, formData);
-        alert('Question updated successfully');
+        alert('✓ Question updated successfully');
       } else {
         await questionAPI.create(surveyId, formData);
-        alert('Question created successfully');
+        alert('✓ Question added successfully! You can add more questions or preview the survey.');
       }
       navigate(`/surveys/${surveyId}/questions`);
     } catch (err) {
-      const errorMsg = err.response?.data?.errors 
-        ? err.response.data.errors.join(', ')
-        : err.response?.data?.error || 'Failed to save question';
-      setSubmitError(errorMsg);
+      console.error('Question submission error:', err);
+      
+      // Handle validation errors from backend
+      if (err.response?.data?.errors && Array.isArray(err.response.data.errors)) {
+        const errorMessages = err.response.data.errors;
+        setSubmitError(errorMessages.join('\n'));
+        
+        // Try to map errors to fields
+        const fieldErrors = {};
+        errorMessages.forEach(msg => {
+          const lowerMsg = msg.toLowerCase();
+          if (lowerMsg.includes('question id')) fieldErrors.questionId = msg;
+          else if (lowerMsg.includes('question type')) fieldErrors.questionType = msg;
+          else if (lowerMsg.includes('question description')) fieldErrors.questionDescription = msg;
+          else if (lowerMsg.includes('option')) fieldErrors.options = msg;
+          else if (lowerMsg.includes('table header')) fieldErrors.tableHeaderValue = msg;
+          else if (lowerMsg.includes('table question')) fieldErrors.tableQuestionValue = msg;
+        });
+        setErrors(fieldErrors);
+      } else if (err.response?.data?.error) {
+        setSubmitError(err.response.data.error);
+      } else if (err.message) {
+        setSubmitError(`Failed to save question: ${err.message}`);
+      } else {
+        setSubmitError('Failed to save question. Please check all fields and try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -237,7 +286,22 @@ const QuestionForm = () => {
         </button>
       </div>
 
-      {submitError && <div className="error-message">{submitError}</div>}
+      {submitError && (
+        <div className="error-message">
+          <strong>Error:</strong> {submitError}
+        </div>
+      )}
+      
+      {Object.keys(errors).length > 0 && (
+        <div className="error-message">
+          <strong>Please fix the following errors:</strong>
+          <ul style={{ margin: '0.5rem 0 0 1.5rem' }}>
+            {Object.entries(errors).map(([field, message]) => (
+              <li key={field}>{message}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="question-form">
         <div className="form-section">

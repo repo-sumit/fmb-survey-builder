@@ -144,6 +144,22 @@ body {
   padding: 1rem;
   border-radius: 4px;
   margin-bottom: 1rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.error-message strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+.error-message ul {
+  list-style-position: inside;
+}
+
+.error-message ul li {
+  margin: 0.25rem 0;
 }
 
 .empty-state {

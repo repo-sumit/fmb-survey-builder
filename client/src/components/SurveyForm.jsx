@@ -223,8 +223,33 @@ const SurveyForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitError(null);
+    setErrors({});
 
+    // Validate required fields first
+    if (!formData.surveyId || !formData.surveyId.trim()) {
+      setSubmitError('Survey ID is required');
+      setErrors({ surveyId: 'Survey ID is required' });
+      return;
+    }
+    if (!formData.surveyName || !formData.surveyName.trim()) {
+      setSubmitError('Survey Name is required');
+      setErrors({ surveyName: 'Survey Name is required' });
+      return;
+    }
+    if (!formData.surveyDescription || !formData.surveyDescription.trim()) {
+      setSubmitError('Survey Description is required');
+      setErrors({ surveyDescription: 'Survey Description is required' });
+      return;
+    }
+    if (!formData.availableMediums || formData.availableMediums.length === 0) {
+      setSubmitError('At least one language must be selected');
+      setErrors({ availableMediums: 'At least one language must be selected' });
+      return;
+    }
+
+    // Run full validation
     if (!validateSurvey(formData)) {
+      setSubmitError('Please fix all validation errors before submitting');
       return;
     }
 
@@ -240,19 +265,42 @@ const SurveyForm = () => {
       
       if (isEdit) {
         await surveyAPI.update(surveyId, dataToSend);
-        alert('Survey updated successfully');
+        alert('✓ Survey updated successfully');
         navigate('/');
       } else {
         const response = await surveyAPI.create(dataToSend);
-        alert('Survey created successfully');
+        alert('✓ Survey created successfully! You can now add questions.');
         // Redirect to Question Master after creating survey
         navigate(`/surveys/${response.surveyId}/questions`);
       }
     } catch (err) {
-      const errorMsg = err.response?.data?.errors 
-        ? err.response.data.errors.join(', ')
-        : err.response?.data?.error || 'Failed to save survey';
-      setSubmitError(errorMsg);
+      console.error('Survey submission error:', err);
+      
+      // Handle validation errors from backend
+      if (err.response?.data?.errors && Array.isArray(err.response.data.errors)) {
+        const errorMessages = err.response.data.errors;
+        setSubmitError(errorMessages.join(' | '));
+        
+        // Try to map errors to fields
+        const fieldErrors = {};
+        errorMessages.forEach(msg => {
+          // Extract field name from error message if possible
+          const lowerMsg = msg.toLowerCase();
+          if (lowerMsg.includes('survey id')) fieldErrors.surveyId = msg;
+          else if (lowerMsg.includes('survey name')) fieldErrors.surveyName = msg;
+          else if (lowerMsg.includes('survey description')) fieldErrors.surveyDescription = msg;
+          else if (lowerMsg.includes('available mediums') || lowerMsg.includes('language')) fieldErrors.availableMediums = msg;
+          else if (lowerMsg.includes('launch date')) fieldErrors.launchDate = msg;
+          else if (lowerMsg.includes('close date')) fieldErrors.closeDate = msg;
+        });
+        setErrors(fieldErrors);
+      } else if (err.response?.data?.error) {
+        setSubmitError(err.response.data.error);
+      } else if (err.message) {
+        setSubmitError(`Failed to save survey: ${err.message}`);
+      } else {
+        setSubmitError('Failed to save survey. Please check all fields and try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -270,7 +318,22 @@ const SurveyForm = () => {
         </button>
       </div>
 
-      {submitError && <div className="error-message">{submitError}</div>}
+      {submitError && (
+        <div className="error-message">
+          <strong>Error:</strong> {submitError}
+        </div>
+      )}
+      
+      {Object.keys(errors).length > 0 && (
+        <div className="error-message">
+          <strong>Please fix the following errors:</strong>
+          <ul style={{ margin: '0.5rem 0 0 1.5rem' }}>
+            {Object.entries(errors).map(([field, message]) => (
+              <li key={field}>{message}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="survey-form">
         <div className="form-section">
