@@ -30,7 +30,7 @@ export const questionTypeFields = {
     textInputTypeValue: 'None',
     questionMediaTypeValue: 'None',
     isDynamic: 'Yes',
-    maxOptions: 15
+    maxOptions: 20
   },
   'Multiple Choice Multi Select': {
     showOptions: true,
@@ -42,7 +42,7 @@ export const questionTypeFields = {
     textInputTypeValue: 'None',
     questionMediaTypeValue: 'None',
     isDynamic: 'Yes',
-    maxOptions: 15
+    maxOptions: 20
   },
   'Tabular Text Input': {
     showOptions: false,
@@ -62,7 +62,7 @@ export const questionTypeFields = {
     showTextLimit: false,
     textInputTypeValue: 'None',
     isDynamic: 'Yes',
-    maxOptions: 15
+    maxOptions: 20
   },
   'Tabular Check Box': {
     showOptions: false,
@@ -117,7 +117,7 @@ export const questionTypeFields = {
     showMaxMin: false,
     showTextLimit: false,
     isDynamic: 'No',
-    maxOptions: 15
+    maxOptions: 20
   },
   'Calendar': {
     showOptions: false,
@@ -136,7 +136,7 @@ export const questionTypeFields = {
     showMaxMin: false,
     showTextLimit: false,
     isDynamic: 'Yes',
-    maxOptions: 15
+    maxOptions: 20
   }
 };
 

@@ -248,7 +248,7 @@ function mapQuestionRecord(record) {
 function parseOptions(questionRow) {
   const options = [];
   
-  for (let i = 1; i <= 15; i++) {
+  for (let i = 1; i <= 20; i++) {
     const optionKey = `option${i}`;
     const optionText = questionRow[optionKey] || questionRow[`Option_${i}`];
     

@@ -106,8 +106,8 @@ class ExcelGenerator {
       { header: 'Question Description', key: 'questionDescriptionDuplicate', width: 50 }
     ];
 
-    // Add 15 options with regional, English, and Children columns
-    for (let i = 1; i <= 15; i++) {
+    // Add 20 options with regional, English, and Children columns
+    for (let i = 1; i <= 20; i++) {
       columns.push({ header: `Option_${i}`, key: `option${i}`, width: 30 });
       columns.push({ header: `Option_${i}_in_English`, key: `option${i}InEnglish`, width: 30 });
       columns.push({ header: `Option${i}Children`, key: `option${i}Children`, width: 20 });
@@ -176,7 +176,7 @@ class ExcelGenerator {
 
     // Add options (regional, English, and children)
     const options = translationData.options || question.options || [];
-    for (let i = 1; i <= 15; i++) {
+    for (let i = 1; i <= 20; i++) {
       const option = options[i - 1];
       row[`option${i}`] = option?.text || '';
       row[`option${i}InEnglish`] = option?.textInEnglish || option?.text || '';

@@ -35,7 +35,7 @@ const TranslationPanel = ({
 
   const addOption = (language) => {
     const currentOptions = translations[language]?.options || [];
-    const maxOptions = fieldConfig?.maxOptions || 15;
+    const maxOptions = fieldConfig?.maxOptions || 20;
     
     if (currentOptions.length >= maxOptions) {
       alert(`Maximum ${maxOptions} options allowed`);
@@ -198,9 +198,9 @@ const TranslationPanel = ({
                   type="button"
                   className="btn btn-secondary"
                   onClick={() => addOption(lang)}
-                  disabled={(translations[lang]?.options || []).length >= (fieldConfig?.maxOptions || 15)}
+                  disabled={(translations[lang]?.options || []).length >= (fieldConfig?.maxOptions || 20)}
                 >
-                  Add Option ({(translations[lang]?.options || []).length}/{fieldConfig?.maxOptions || 15})
+                  Add Option ({(translations[lang]?.options || []).length}/{fieldConfig?.maxOptions || 20})
                 </button>
               </div>
             )}
