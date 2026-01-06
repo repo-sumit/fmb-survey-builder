@@ -11,13 +11,45 @@ const SurveyPreview = () => {
   const [questions, setQuestions] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedLanguage, setSelectedLanguage] = useState('English');
+  const [availableLanguages, setAvailableLanguages] = useState(['English']);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    setCurrentQuestionIndex(0);
     loadSurveyData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [surveyId]);
+
+  useEffect(() => {
+    if (currentQuestionIndex >= questions.length && questions.length > 0) {
+      setCurrentQuestionIndex(0);
+    }
+  }, [currentQuestionIndex, questions.length]);
+
+  const parseAvailableLanguages = (mediums) => {
+    if (Array.isArray(mediums)) {
+      return mediums.map((lang) => lang.trim()).filter(Boolean);
+    }
+    if (typeof mediums === 'string') {
+      return mediums.split(',').map((lang) => lang.trim()).filter(Boolean);
+    }
+    return ['English'];
+  };
+
+  const sortQuestions = (list) => {
+    return [...list].sort((a, b) => {
+      const aIsChild = a.questionId?.includes('.');
+      const bIsChild = b.questionId?.includes('.');
+
+      if (aIsChild && !bIsChild) return 1;
+      if (!aIsChild && bIsChild) return -1;
+
+      const aNum = parseFloat(String(a.questionId || '').replace('Q', ''));
+      const bNum = parseFloat(String(b.questionId || '').replace('Q', ''));
+      return aNum - bNum;
+    });
+  };
 
   const loadSurveyData = async () => {
     try {
@@ -26,12 +58,11 @@ const SurveyPreview = () => {
       const questionsData = await questionAPI.getAll(surveyId);
       
       setSurvey(surveyData);
-      setQuestions(questionsData);
-      
-      // Set default language to first available medium
-      if (surveyData.availableMediums && surveyData.availableMediums.length > 0) {
-        setSelectedLanguage(surveyData.availableMediums[0]);
-      }
+      setQuestions(sortQuestions(questionsData));
+
+      const languages = parseAvailableLanguages(surveyData.availableMediums);
+      setAvailableLanguages(languages.length > 0 ? languages : ['English']);
+      setSelectedLanguage((prev) => (languages.includes(prev) ? prev : (languages[0] || 'English')));
       
       setError(null);
     } catch (err) {
@@ -77,7 +108,9 @@ const SurveyPreview = () => {
   }
 
   const currentQuestion = questions[currentQuestionIndex];
-  const availableLanguages = survey?.availableMediums || ['English'];
+  const effectiveLanguage = availableLanguages.includes(selectedLanguage)
+    ? selectedLanguage
+    : (availableLanguages[0] || 'English');
 
   return (
     <div className="survey-preview-container">
@@ -92,7 +125,7 @@ const SurveyPreview = () => {
             <div className="language-selector">
               <label>Preview Language: </label>
               <select 
-                value={selectedLanguage} 
+                value={effectiveLanguage} 
                 onChange={handleLanguageChange}
                 className="language-dropdown"
               >
@@ -122,7 +155,7 @@ const SurveyPreview = () => {
       <div className="preview-content">
         <QuestionRenderer 
           question={currentQuestion} 
-          language={selectedLanguage}
+          language={effectiveLanguage}
         />
       </div>
     </div>

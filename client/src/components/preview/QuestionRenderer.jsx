@@ -11,6 +11,10 @@ import MediaUploadRenderer from './MediaUploadRenderer';
 import TabularCheckBoxRenderer from './TabularCheckBoxRenderer';
 
 const QuestionRenderer = ({ question, language }) => {
+  if (!question) {
+    return null;
+  }
+
   const translations = question.translations?.[language] || {};
   const questionDescription = translations.questionDescription || question.questionDescription || '';
   const isMandatory = question.isMandatory === 'Yes';

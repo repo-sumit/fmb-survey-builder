@@ -3,7 +3,9 @@ import React, { useState } from 'react';
 const LikertScaleRenderer = ({ question, language }) => {
   const [selectedValue, setSelectedValue] = useState(null);
   const translations = question.translations?.[language] || {};
-  const options = translations.options || [];
+  const options = (translations.options && translations.options.length > 0)
+    ? translations.options
+    : (question.options || []);
 
   return (
     <div className="likert-scale-renderer">

@@ -3,7 +3,9 @@ import React, { useState } from 'react';
 const MultipleChoiceMultiRenderer = ({ question, language }) => {
   const [selectedOptions, setSelectedOptions] = useState([]);
   const translations = question.translations?.[language] || {};
-  const options = translations.options || [];
+  const options = (translations.options && translations.options.length > 0)
+    ? translations.options
+    : (question.options || []);
 
   const toggleOption = (index) => {
     setSelectedOptions(prev => 

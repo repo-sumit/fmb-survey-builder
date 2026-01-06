@@ -2,10 +2,19 @@ import React, { useState } from 'react';
 
 const TabularCheckBoxRenderer = ({ question, language }) => {
   const [selections, setSelections] = useState({});
+  const translations = question.translations?.[language] || {};
+  const tableHeaderValue = translations.tableHeaderValue || question.tableHeaderValue || '';
+  const tableQuestionValue = translations.tableQuestionValue || question.tableQuestionValue || '';
+
+  const parseHeaders = (value) => {
+    if (!value) return [];
+    const delimiter = value.includes('|') ? '|' : ',';
+    return value.split(delimiter).map((header) => header.trim()).filter(Boolean);
+  };
   
   // Parse table headers and questions
-  const tableHeaders = question.tableHeaderValue?.split('|').filter(h => h.trim()) || [];
-  const tableQuestions = question.tableQuestionValue?.split('\n')
+  const tableHeaders = parseHeaders(tableHeaderValue);
+  const tableQuestions = tableQuestionValue?.split('\n')
     .map(line => {
       const [key, value] = line.split(':');
       return { key: key?.trim(), value: value?.trim() };

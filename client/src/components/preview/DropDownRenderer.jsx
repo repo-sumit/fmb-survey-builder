@@ -2,8 +2,10 @@ import React from 'react';
 
 const DropDownRenderer = ({ question, language }) => {
   const translations = question.translations?.[language] || {};
-  const options = translations.options || [];
-  const optionalDescription = translations.questionDescriptionOptional || '';
+  const options = (translations.options && translations.options.length > 0)
+    ? translations.options
+    : (question.options || []);
+  const optionalDescription = translations.questionDescriptionOptional || question.questionDescriptionOptional || '';
 
   return (
     <div className="dropdown-renderer">
