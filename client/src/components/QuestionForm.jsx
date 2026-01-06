@@ -23,7 +23,7 @@ const QuestionForm = () => {
     sourceQuestion: '',
     textInputType: 'None',
     textLimitCharacters: '',
-    mode: 'None',
+    mode: 'New Data',
     questionMediaLink: '',
     questionMediaType: 'None',
     correctAnswerOptional: '',
@@ -84,13 +84,16 @@ const QuestionForm = () => {
       const languages = typeof data.availableMediums === 'string' 
         ? data.availableMediums.split(',').map(l => l.trim()).filter(l => l)
         : (data.availableMediums || ['English']);
+      const orderedLanguages = languages.includes('English')
+        ? ['English', ...languages.filter(lang => lang !== 'English')]
+        : languages;
       
-      setSurveyLanguages(languages);
+      setSurveyLanguages(orderedLanguages);
       
       // Initialize translations for all languages if creating new question
       if (!isEdit) {
         const initialTranslations = {};
-        languages.forEach(lang => {
+        orderedLanguages.forEach(lang => {
           initialTranslations[lang] = {
             questionDescription: '',
             options: [],
@@ -138,10 +141,24 @@ const QuestionForm = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => {
+      const next = {
+        ...prev,
+        [name]: value
+      };
+
+      if (name === 'questionId' && value.includes('.')) {
+        const parentId = value.split('.').slice(0, -1).join('.');
+        const previousParent = prev.questionId?.includes('.')
+          ? prev.questionId.split('.').slice(0, -1).join('.')
+          : '';
+        if (!prev.sourceQuestion || prev.sourceQuestion === previousParent) {
+          next.sourceQuestion = parentId;
+        }
+      }
+
+      return next;
+    });
     if (errors[name]) {
       setErrors(prev => {
         const newErrors = { ...prev };

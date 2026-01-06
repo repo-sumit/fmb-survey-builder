@@ -1159,11 +1159,78 @@ body {
   animation: fadeIn 0.2s;
 }
 
+.translation-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #ddd;
+}
+
+.translation-toolbar-title {
+  color: #34495e;
+  font-weight: 600;
+}
+
+.translation-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
 .translation-section h4 {
   margin-bottom: 1rem;
   color: #2c3e50;
   padding-bottom: 0.5rem;
   border-bottom: 1px solid #eee;
+}
+
+.table-header-inputs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.table-question-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.options-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.options-grid-header,
+.options-grid-row {
+  display: grid;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.options-grid-header.has-children,
+.options-grid-row.has-children {
+  grid-template-columns: auto repeat(auto-fit, minmax(160px, 1fr)) auto;
+}
+
+.options-grid-header.no-children,
+.options-grid-row.no-children {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)) auto;
+}
+
+.options-grid-header {
+  font-weight: 600;
+  color: #34495e;
+}
+
+.options-grid-row input {
+  width: 100%;
 }
 
 .options-section {
