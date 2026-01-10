@@ -127,7 +127,7 @@ export const useValidation = () => {
     if (!questionData.questionId || questionData.questionId.trim() === '') {
       newErrors.questionId = MESSAGES.REQUIRED('Question ID');
     } else if (!PATTERNS.QUESTION_ID.test(questionData.questionId)) {
-      newErrors.questionId = 'Question ID must be in format Q1, Q1.1, Q5.2, etc.';
+      newErrors.questionId = 'Question ID must be in format 1, 1.1, 5.2 (saved as Q1, Q1.1, Q5.2).';
     }
     
     if (!questionData.questionDescription || questionData.questionDescription.trim() === '') {

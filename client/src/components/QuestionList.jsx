@@ -46,9 +46,32 @@ const QuestionList = () => {
     }
   };
 
+  const normalizeQuestionId = (value) => {
+    const trimmed = String(value || '').trim();
+    if (!trimmed) {
+      return '';
+    }
+    if (/^q/i.test(trimmed)) {
+      return `Q${trimmed.slice(1)}`;
+    }
+    if (/^\d+(\.\d+)*$/.test(trimmed)) {
+      return `Q${trimmed}`;
+    }
+    return trimmed;
+  };
+
   const handleDuplicate = async (questionId) => {
     try {
-      const duplicatedQuestion = await questionAPI.duplicate(surveyId, questionId);
+      const newQuestionId = window.prompt('Enter the new Question ID (example: 4 or Q4):');
+      if (!newQuestionId) {
+        return;
+      }
+      const normalizedQuestionId = normalizeQuestionId(newQuestionId);
+      if (!normalizedQuestionId) {
+        alert('Question ID is required.');
+        return;
+      }
+      const duplicatedQuestion = await questionAPI.duplicate(surveyId, questionId, normalizedQuestionId);
       loadData();
       alert(`Question duplicated successfully as ${duplicatedQuestion.questionId}`);
       // Navigate to edit the duplicated question
@@ -82,17 +105,30 @@ const QuestionList = () => {
   }
 
   // Sort questions by ID (parent questions first, then child questions)
+  const parseQuestionSegments = (questionId) => {
+    const cleaned = String(questionId || '').replace(/^Q/i, '');
+    return cleaned.split('.').map(segment => Number.parseInt(segment, 10)).filter(num => !Number.isNaN(num));
+  };
+
+  const getQuestionDepth = (questionId) => {
+    const segments = parseQuestionSegments(questionId);
+    return Math.max(segments.length - 1, 0);
+  };
+
   const sortedQuestions = [...questions].sort((a, b) => {
-    const aIsChild = a.questionId.includes('.');
-    const bIsChild = b.questionId.includes('.');
-    
-    if (aIsChild && !bIsChild) return 1;
-    if (!aIsChild && bIsChild) return -1;
-    
-    // Natural sort for IDs like Q1, Q2, Q10
-    const aNum = parseFloat(a.questionId.replace('Q', ''));
-    const bNum = parseFloat(b.questionId.replace('Q', ''));
-    return aNum - bNum;
+    const aParts = parseQuestionSegments(a.questionId);
+    const bParts = parseQuestionSegments(b.questionId);
+    const maxLen = Math.max(aParts.length, bParts.length);
+
+    for (let i = 0; i < maxLen; i += 1) {
+      const aVal = aParts[i];
+      const bVal = bParts[i];
+      if (aVal === undefined) return -1;
+      if (bVal === undefined) return 1;
+      if (aVal !== bVal) return aVal - bVal;
+    }
+
+    return 0;
   });
 
   return (
@@ -143,7 +179,8 @@ const QuestionList = () => {
           {sortedQuestions.map(question => (
             <div 
               key={question.questionId} 
-              className={`question-card ${question.questionId.includes('.') ? 'child-question' : ''}`}
+              className={`question-card ${getQuestionDepth(question.questionId) > 0 ? 'child-question' : ''}`}
+              style={{ '--question-depth': getQuestionDepth(question.questionId) }}
             >
               <div className="question-header">
                 <div>

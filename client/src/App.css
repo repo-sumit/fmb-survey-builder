@@ -429,6 +429,7 @@ body {
   padding: 1.5rem;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   transition: transform 0.2s, box-shadow 0.2s;
+  margin-left: calc(var(--question-depth, 0) * 1.5rem);
 }
 
 .question-card:hover {
@@ -437,7 +438,6 @@ body {
 }
 
 .question-card.child-question {
-  margin-left: 2rem;
   border-left: 4px solid #3498db;
 }
 
@@ -668,8 +668,8 @@ body {
     grid-template-columns: 1fr;
   }
 
-  .question-card.child-question {
-    margin-left: 1rem;
+  .question-card {
+    margin-left: calc(var(--question-depth, 0) * 0.75rem);
   }
 
   .header-actions {

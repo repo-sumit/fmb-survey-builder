@@ -6,6 +6,61 @@ const validator = require('../services/validator');
 
 const STORE_PATH = path.join(__dirname, '../data/store.json');
 
+const normalizeQuestionId = (value) => {
+  const trimmed = String(value || '').trim();
+  if (!trimmed) {
+    return '';
+  }
+  if (/^q/i.test(trimmed)) {
+    return `Q${trimmed.slice(1)}`;
+  }
+  if (/^\d+(\.\d+)*$/.test(trimmed)) {
+    return `Q${trimmed}`;
+  }
+  return trimmed;
+};
+
+const normalizeChildList = (value) => {
+  if (!value) {
+    return '';
+  }
+  return value
+    .split(',')
+    .map(part => normalizeQuestionId(part))
+    .filter(Boolean)
+    .join(', ');
+};
+
+const normalizeQuestionPayload = (question) => {
+  const normalizeOptions = (options = []) => options.map(option => {
+    if (!option || typeof option !== 'object') {
+      return option;
+    }
+    return {
+      ...option,
+      children: normalizeChildList(option.children || '')
+    };
+  });
+
+  const normalizedTranslations = {};
+  if (question.translations) {
+    Object.entries(question.translations).forEach(([lang, translation]) => {
+      normalizedTranslations[lang] = {
+        ...translation,
+        options: normalizeOptions(translation.options || [])
+      };
+    });
+  }
+
+  return {
+    ...question,
+    questionId: normalizeQuestionId(question.questionId),
+    sourceQuestion: normalizeQuestionId(question.sourceQuestion),
+    translations: question.translations ? normalizedTranslations : question.translations,
+    options: normalizeOptions(question.options || [])
+  };
+};
+
 // Initialize store if it doesn't exist
 async function initStore() {
   try {
@@ -190,7 +245,7 @@ router.get('/:id/questions', async (req, res) => {
 // POST /api/surveys/:id/questions - Add question to survey
 router.post('/:id/questions', async (req, res) => {
   try {
-    const questionData = { ...req.body, surveyId: req.params.id };
+    const questionData = normalizeQuestionPayload({ ...req.body, surveyId: req.params.id });
     
     const store = await readStore();
     
@@ -253,7 +308,11 @@ router.post('/:id/questions', async (req, res) => {
 // PUT /api/surveys/:id/questions/:questionId - Update question
 router.put('/:id/questions/:questionId', async (req, res) => {
   try {
-    const questionData = { ...req.body, surveyId: req.params.id, questionId: req.params.questionId };
+    const questionData = normalizeQuestionPayload({
+      ...req.body,
+      surveyId: req.params.id,
+      questionId: req.params.questionId
+    });
     
     // Validate question data
     const store = await readStore();
@@ -374,6 +433,12 @@ router.post('/:id/duplicate', async (req, res) => {
 router.post('/:surveyId/questions/:questionId/duplicate', async (req, res) => {
   try {
     const { surveyId, questionId } = req.params;
+    const { newQuestionId } = req.body;
+
+    if (!newQuestionId) {
+      return res.status(400).json({ error: 'New Question ID is required' });
+    }
+    const normalizedNewQuestionId = normalizeQuestionId(newQuestionId);
     
     const store = await readStore();
     
@@ -386,34 +451,17 @@ router.post('/:surveyId/questions/:questionId/duplicate', async (req, res) => {
       return res.status(404).json({ error: 'Question not found' });
     }
     
-    // Generate new question ID
-    const surveyQuestions = store.questions.filter(q => q.surveyId === surveyId);
-    const questionNumbers = surveyQuestions
-      .map(q => {
-        const match = q.questionId.match(/^Q(\d+)(?:\.(\d+))?$/);
-        if (match) {
-          return parseInt(match[1]);
-        }
-        return 0;
-      })
-      .filter(n => n > 0);
-    
-    const maxQuestionNum = questionNumbers.length > 0 
-      ? questionNumbers.reduce((max, num) => Math.max(max, num), 0) 
-      : 0;
-    const newQuestionId = `Q${maxQuestionNum + 1}`;
-    
     // Create duplicated question
-    const duplicatedQuestion = {
+    const duplicatedQuestion = normalizeQuestionPayload({
       ...originalQuestion,
-      questionId: newQuestionId,
+      questionId: normalizedNewQuestionId,
       sourceQuestion: '', // Reset source question for duplicated question
       optionChildren: originalQuestion.optionChildren || ''
-    };
+    });
     
     // Check if new question ID already exists (shouldn't happen, but safety check)
-    if (store.questions.find(q => q.surveyId === surveyId && q.questionId === newQuestionId)) {
-      return res.status(400).json({ error: 'Generated question ID already exists' });
+    if (store.questions.find(q => q.surveyId === surveyId && q.questionId === normalizedNewQuestionId)) {
+      return res.status(400).json({ error: 'Question ID already exists' });
     }
     
     // Validate duplicated question

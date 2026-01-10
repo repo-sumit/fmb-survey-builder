@@ -113,10 +113,6 @@ class ExcelGenerator {
       columns.push({ header: `Option${i}Children`, key: `option${i}Children`, width: 20 });
     }
 
-    columns.push({ header: 'Correct_Answer_Optional', key: 'correctAnswerOptional', width: 25 });
-    columns.push({ header: 'Children Questions', key: 'childrenQuestions', width: 30 });
-    columns.push({ header: 'Outcome Description', key: 'outcomeDescription', width: 30 });
-
     sheet.columns = columns;
 
     // Parse available mediums from survey
@@ -182,10 +178,6 @@ class ExcelGenerator {
       row[`option${i}InEnglish`] = option?.textInEnglish || option?.text || '';
       row[`option${i}Children`] = option?.children || '';
     }
-
-    row.correctAnswerOptional = question.correctAnswerOptional || '';
-    row.childrenQuestions = question.childrenQuestions || '';
-    row.outcomeDescription = question.outcomeDescription || '';
 
     return row;
   }

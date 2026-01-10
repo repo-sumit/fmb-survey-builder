@@ -266,7 +266,7 @@ class ValidationEngine {
       } else if (allQuestions.length > 0) {
         // Validate parent question exists
         const parentExists = allQuestions.some(q => 
-          q.questionId === questionData.sourceQuestion && 
+          this._normalizeQuestionId(q.questionId) === this._normalizeQuestionId(questionData.sourceQuestion) && 
           q.surveyId === questionData.surveyId
         );
         if (!parentExists) {
@@ -278,6 +278,12 @@ class ValidationEngine {
         }
       }
     }
+
+    const parentTypeErrors = this._validateChildParentType(questionData, allQuestions);
+    errors.push(...parentTypeErrors);
+
+    const childMappingErrors = this._validateChildMappings(questionData, allQuestions);
+    errors.push(...childMappingErrors);
 
     // Question type specific validations
     const questionType = questionData.questionType;
@@ -540,6 +546,109 @@ class ValidationEngine {
           });
         }
       }
+    }
+
+    return errors;
+  }
+
+  _normalizeQuestionId(value) {
+    if (value === undefined || value === null) {
+      return '';
+    }
+    const trimmed = String(value).trim();
+    if (!trimmed) {
+      return '';
+    }
+    if (/^q/i.test(trimmed)) {
+      return `Q${trimmed.slice(1)}`;
+    }
+    if (/^\d+(\.\d+)*$/.test(trimmed)) {
+      return `Q${trimmed}`;
+    }
+    return trimmed;
+  }
+
+  _parseChildList(value) {
+    if (!value) {
+      return [];
+    }
+    return value
+      .split(',')
+      .map(part => this._normalizeQuestionId(part))
+      .filter(Boolean);
+  }
+
+  _getOptionsForQuestion(question) {
+    if (Array.isArray(question.options) && question.options.length > 0) {
+      return question.options;
+    }
+    if (question.translations && typeof question.translations === 'object') {
+      const languageKey = Object.keys(question.translations)[0];
+      const options = question.translations[languageKey]?.options;
+      if (Array.isArray(options)) {
+        return options;
+      }
+    }
+    return [];
+  }
+
+  _validateChildParentType(questionData, allQuestions) {
+    const errors = [];
+    const parentId = this._normalizeQuestionId(questionData.sourceQuestion);
+    if (!parentId) {
+      return errors;
+    }
+    const parent = allQuestions.find(q =>
+      this._normalizeQuestionId(q.questionId) === parentId &&
+      q.surveyId === questionData.surveyId
+    );
+    if (parent && parent.questionType !== 'Multiple Choice Single Select') {
+      errors.push({
+        field: 'sourceQuestion',
+        message: 'Only Multiple Choice Single Select questions can have child questions. Change the Question ID or parent.',
+        value: questionData.sourceQuestion
+      });
+    }
+    return errors;
+  }
+
+  _validateChildMappings(questionData, allQuestions) {
+    const errors = [];
+    if (!questionData.surveyId) {
+      return errors;
+    }
+    const normalizedQuestionId = this._normalizeQuestionId(questionData.questionId);
+    const questions = allQuestions
+      .filter(q => q.surveyId === questionData.surveyId)
+      .filter(q => this._normalizeQuestionId(q.questionId) !== normalizedQuestionId);
+    questions.push(questionData);
+
+    const seen = new Map();
+    const conflicts = new Set();
+
+    questions.forEach(question => {
+      const options = this._getOptionsForQuestion(question);
+      options.forEach((option, optionIndex) => {
+        const children = this._parseChildList(option?.children || '');
+        const uniqueChildren = new Set(children);
+        uniqueChildren.forEach(childId => {
+          const existing = seen.get(childId);
+          const normalizedQuestionId = this._normalizeQuestionId(question.questionId);
+          if (existing && (existing.questionId !== normalizedQuestionId || existing.optionIndex !== optionIndex)) {
+            conflicts.add(childId);
+          } else {
+            seen.set(childId, { questionId: normalizedQuestionId, optionIndex });
+          }
+        });
+      });
+    });
+
+    if (conflicts.size > 0) {
+      errors.push({
+        field: 'options',
+        message: `Child question IDs cannot be mapped to multiple options/questions: ${Array.from(conflicts).join(', ')}`,
+        value: ''
+      });
     }
 
     return errors;

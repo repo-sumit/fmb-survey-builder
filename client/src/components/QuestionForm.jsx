@@ -12,6 +12,7 @@ const QuestionForm = () => {
   const { errors, validateQuestion, setErrors } = useValidation();
 
   const [survey, setSurvey] = useState(null);
+  const [existingQuestions, setExistingQuestions] = useState([]);
   const [formData, setFormData] = useState({
     questionId: '',
     questionType: '',
@@ -39,9 +40,7 @@ const QuestionForm = () => {
 
   useEffect(() => {
     loadSurvey();
-    if (isEdit) {
-      loadQuestion();
-    }
+    loadQuestions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [surveyId, questionId]);
 
@@ -109,9 +108,13 @@ const QuestionForm = () => {
     }
   };
 
-  const loadQuestion = async () => {
+  const loadQuestions = async () => {
     try {
       const questions = await questionAPI.getAll(surveyId);
+      setExistingQuestions(questions);
+      if (!isEdit) {
+        return;
+      }
       const question = questions.find(q => q.questionId === questionId);
       if (question) {
         // If question doesn't have translations, create them from old format
@@ -134,21 +137,60 @@ const QuestionForm = () => {
         setFormData(question);
       }
     } catch (err) {
-      alert('Failed to load question');
-      navigate(`/surveys/${surveyId}/questions`);
+      setExistingQuestions([]);
+      if (isEdit) {
+        alert('Failed to load question');
+        navigate(`/surveys/${surveyId}/questions`);
+      }
     }
+  };
+
+  const normalizeQuestionId = (value) => {
+    const trimmed = String(value || '').trim();
+    if (!trimmed) {
+      return '';
+    }
+    if (/^q/i.test(trimmed)) {
+      return `Q${trimmed.slice(1)}`;
+    }
+    if (/^\d+(\.\d+)*$/.test(trimmed)) {
+      return `Q${trimmed}`;
+    }
+    return trimmed;
+  };
+
+  const getParentQuestionId = (value) => {
+    const normalized = normalizeQuestionId(value);
+    if (!normalized.includes('.')) {
+      return '';
+    }
+    return normalized.split('.').slice(0, -1).join('.');
+  };
+
+  const normalizeChildList = (value) => {
+    if (!value) {
+      return '';
+    }
+    const parts = value
+      .split(',')
+      .map(part => normalizeQuestionId(part))
+      .filter(Boolean);
+    return parts.join(', ');
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => {
+      const normalizedValue = (name === 'questionId' || name === 'sourceQuestion')
+        ? normalizeQuestionId(value)
+        : value;
       const next = {
         ...prev,
-        [name]: value
+        [name]: normalizedValue
       };
 
-      if (name === 'questionId' && value.includes('.')) {
-        const parentId = value.split('.').slice(0, -1).join('.');
+      if (name === 'questionId' && normalizedValue.includes('.')) {
+        const parentId = getParentQuestionId(normalizedValue);
         const previousParent = prev.questionId?.includes('.')
           ? prev.questionId.split('.').slice(0, -1).join('.')
           : '';
@@ -180,16 +222,77 @@ const QuestionForm = () => {
       ? 'English'
       : (surveyLanguages[0] || 'English');
     const primaryTranslation = formData.translations?.[primaryLanguage] || {};
+    const normalizedQuestionId = normalizeQuestionId(formData.questionId);
+    const normalizedSourceQuestion = normalizeQuestionId(formData.sourceQuestion);
+    const derivedParent = normalizedQuestionId.includes('.') ? getParentQuestionId(normalizedQuestionId) : '';
+    const resolvedSourceQuestion = normalizedSourceQuestion || derivedParent;
+    const normalizeOptions = (options = []) => options.map(option => {
+      if (!option || typeof option !== 'object') {
+        return option;
+      }
+      return {
+        ...option,
+        children: normalizeChildList(option.children || '')
+      };
+    });
+    const normalizedTranslations = {};
+    Object.entries(formData.translations || {}).forEach(([lang, translation]) => {
+      normalizedTranslations[lang] = {
+        ...translation,
+        options: normalizeOptions(translation.options || [])
+      };
+    });
 
     // Map translations back to legacy fields for validation and backend compatibility.
     return {
       ...formData,
+      questionId: normalizedQuestionId,
+      sourceQuestion: resolvedSourceQuestion,
+      translations: normalizedTranslations,
       questionDescription: primaryTranslation.questionDescription || '',
-      options: primaryTranslation.options || [],
+      options: normalizeOptions(primaryTranslation.options || []),
       tableHeaderValue: primaryTranslation.tableHeaderValue || '',
       tableQuestionValue: primaryTranslation.tableQuestionValue || '',
       medium: primaryLanguage
     };
+  };
+
+  const getOptionsForQuestion = (question, fallbackLanguage) => {
+    if (Array.isArray(question.options) && question.options.length > 0) {
+      return question.options;
+    }
+    const translations = question.translations || {};
+    if (fallbackLanguage && translations[fallbackLanguage]?.options) {
+      return translations[fallbackLanguage].options;
+    }
+    const firstLanguage = Object.keys(translations)[0];
+    return translations[firstLanguage]?.options || [];
+  };
+
+  const getChildMappingConflicts = (questions, fallbackLanguage) => {
+    const seen = new Map();
+    const conflicts = new Set();
+
+    questions.forEach(question => {
+      const options = getOptionsForQuestion(question, fallbackLanguage);
+      options.forEach((option, optionIndex) => {
+        const children = normalizeChildList(option?.children || '')
+          .split(',')
+          .map(child => child.trim())
+          .filter(Boolean);
+        const uniqueChildren = new Set(children);
+        uniqueChildren.forEach(childId => {
+          const existing = seen.get(childId);
+          if (existing && (existing.questionId !== question.questionId || existing.optionIndex !== optionIndex)) {
+            conflicts.add(childId);
+          } else {
+            seen.set(childId, { questionId: question.questionId, optionIndex });
+          }
+        });
+      });
+    });
+
+    return Array.from(conflicts);
   };
 
   const handleSubmit = async (e) => {
@@ -257,6 +360,32 @@ const QuestionForm = () => {
     }
 
     const payload = buildQuestionPayload();
+
+    const parentId = payload.questionId.includes('.') ? (payload.sourceQuestion || getParentQuestionId(payload.questionId)) : '';
+    if (payload.questionId.includes('.')) {
+      if (!parentId) {
+        setSubmitError('Child questions must have a parent question.');
+        setErrors({ sourceQuestion: 'Source Question is required for child questions' });
+        return;
+      }
+      const parentQuestion = existingQuestions.find(q => q.surveyId === surveyId && q.questionId === parentId);
+      if (parentQuestion && parentQuestion.questionType !== 'Multiple Choice Single Select') {
+        setSubmitError('Only Multiple Choice Single Select questions can have child questions. Change the Question ID or parent.');
+        setErrors({ questionId: 'Child questions can only belong to Multiple Choice Single Select questions.' });
+        return;
+      }
+    }
+
+    const validationQuestions = [
+      ...existingQuestions.filter(q => q.surveyId === surveyId && q.questionId !== payload.questionId),
+      payload
+    ];
+    const conflictChildren = getChildMappingConflicts(validationQuestions, payload.medium);
+    if (conflictChildren.length > 0) {
+      setSubmitError(`Child question IDs cannot be mapped to multiple options/questions: ${conflictChildren.join(', ')}`);
+      setErrors({ options: 'Child question IDs must be unique across all options.' });
+      return;
+    }
 
     // Run full validation
     if (!validateQuestion(payload, payload.questionType)) {
@@ -355,11 +484,11 @@ const QuestionForm = () => {
                 value={formData.questionId}
                 onChange={handleChange}
                 disabled={isEdit}
-                placeholder="e.g., Q1, Q1.1, Q2"
+                placeholder="e.g., 1, 1.1, 2"
                 className={errors.questionId ? 'error' : ''}
               />
               {errors.questionId && <span className="error-text">{errors.questionId}</span>}
-              <small>Format: Q1, Q2, or Q1.1 for child questions</small>
+              <small>Format: 1, 2, or 1.1 for child questions (saved as Q1, Q1.1)</small>
             </div>
 
             <div className="form-group">
@@ -408,9 +537,9 @@ const QuestionForm = () => {
               name="sourceQuestion"
               value={formData.sourceQuestion}
               onChange={handleChange}
-              placeholder="e.g., Q1 (for child questions)"
+              placeholder="e.g., 1 (for child questions)"
             />
-            <small>Only required for child questions (e.g., Q1.1, Q1.2)</small>
+            <small>Only required for child questions (e.g., 1.1, 1.2)</small>
           </div>
         </div>
 
@@ -570,47 +699,6 @@ const QuestionForm = () => {
                 <small>Disabled when Media Type is None</small>
               )}
             </div>
-          </div>
-        </div>
-
-        {/* Additional Fields */}
-        <div className="form-section">
-          <h3>Additional Information</h3>
-          
-          <div className="form-group">
-            <label htmlFor="correctAnswerOptional">Correct Answer (Optional)</label>
-            <input
-              type="text"
-              id="correctAnswerOptional"
-              name="correctAnswerOptional"
-              value={formData.correctAnswerOptional}
-              onChange={handleChange}
-              placeholder="Optional correct answer"
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="childrenQuestions">Children Questions</label>
-            <input
-              type="text"
-              id="childrenQuestions"
-              name="childrenQuestions"
-              value={formData.childrenQuestions}
-              onChange={handleChange}
-              placeholder="Comma-separated child question IDs"
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="outcomeDescription">Outcome Description</label>
-            <textarea
-              id="outcomeDescription"
-              name="outcomeDescription"
-              value={formData.outcomeDescription}
-              onChange={handleChange}
-              rows="2"
-              placeholder="Description of outcome"
-            />
           </div>
         </div>
 
