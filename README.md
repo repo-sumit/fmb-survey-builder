@@ -61,6 +61,12 @@ fmb-survey-builder/
 - Node.js (v14 or higher)
 - npm (v6 or higher)
 
+### Github repo clone in VS code
+
+```
+git clone https://github.com/repo-sumit/fmb-survey-builder.git
+```
+
 ### Backend Setup
 
 1. Navigate to the server directory:
